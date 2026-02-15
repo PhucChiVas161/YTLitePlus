@@ -7,7 +7,7 @@ on:
     workflow_dispatch:
         inputs:
             sdk_version:
-                description: "iOS SDK Version"
+                description: "iOS SDK Version (e.g., 16.4, 17.2, 18.6)"
                 default: "18.6"
                 required: true
                 type: string
@@ -65,6 +65,36 @@ jobs:
                   ref: ${{ github.event.inputs.commit_id || github.ref }}
                   submodules: recursive
 
+            - name: Validate SDK Version
+              run: |
+                  SDK_VERSION="${{ inputs.sdk_version }}"
+                  # Extract major version number
+                  MAJOR_VERSION=$(echo "$SDK_VERSION" | cut -d'.' -f1)
+                  
+                  # Check if the major version is a valid number
+                  if ! [[ "$MAJOR_VERSION" =~ ^[0-9]+$ ]]; then
+                      echo "::error::Invalid SDK version format: $SDK_VERSION"
+                      echo "::error::SDK version must be in format like 16.4, 17.2, or 18.6"
+                      exit 1
+                  fi
+                  
+                  # Check if SDK version contains only numbers and dots
+                  if ! [[ "$SDK_VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
+                      echo "::error::Invalid SDK version format: $SDK_VERSION"
+                      echo "::error::SDK version must be in format like 16.4, 17.2, or 18.6 (numbers and dots only)"
+                      exit 1
+                  fi
+                  
+                  # Check if major version is within reasonable range (14-20)
+                  if [ "$MAJOR_VERSION" -lt 14 ] || [ "$MAJOR_VERSION" -gt 20 ]; then
+                      echo "::error::Invalid iOS SDK version: $SDK_VERSION"
+                      echo "::error::iOS SDK major version must be between 14 and 20 (e.g., 16.4, 17.2, 18.6)"
+                      echo "::error::Note: There is no iOS 26.x - if you meant iOS 16.x, please use 16.4 or similar"
+                      exit 1
+                  fi
+                  
+                  echo "✅ SDK version $SDK_VERSION is valid"
+
             - name: Install Dependencies
               run: brew install ldid dpkg make jq
 
@@ -90,6 +120,9 @@ jobs:
               if: steps.SDK.outputs.cache-hit != 'true'
               run: |
                   # Only download the specific SDK version
+                  # SDKs are downloaded from https://github.com/aricloverEXTRA/sdks/
+                  # Valid iOS SDK versions include: 14.x, 15.x, 16.x, 17.x, 18.x, etc.
+                  # Note: iOS 26.x does NOT exist - use 16.x if you need iOS 16 SDKs
                   git clone -n --depth=1 --filter=tree:0 https://github.com/aricloverEXTRA/sdks/
                   cd sdks
                   git sparse-checkout set --no-cone iPhoneOS${{ inputs.sdk_version }}.sdk

@@ -140,3 +140,7 @@
 
 # Building
 See [YTLitePlus/Building - Wiki](https://github.com/YTLitePlus/YTLitePlus/wiki/Building)
+
+**Important Note for Manual Workflow Builds:**
+When manually triggering the build workflow, make sure to use a valid iOS SDK version (e.g., `16.4`, `17.2`, `18.6`).
+Valid iOS SDK major versions are between 14 and 20. Note that iOS 26.x does **not** exist - if you need iOS 16 SDKs, use versions like `16.2` or `16.4`.
